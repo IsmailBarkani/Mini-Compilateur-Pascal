@@ -714,7 +714,7 @@ void sym_suiv(){
   }
 }
 
-int main() {ilyas9668
+int main() {
 	  file = fopen("test.p","r+");
 	  Car_Cour = fgetc(file);
 	  if(Car_Cour=='\n'){
