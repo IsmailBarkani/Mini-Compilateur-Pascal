@@ -157,12 +157,43 @@ void cas();
 
 
 
+char* testerGenerateur(MNEMONIQUES M, int A){
+	char *pcode = calloc(1024,sizeof(char));
+	switch(M){
+		case ADD: return "ADD";break;
+		case SUB: return "SUB";break;
+		case MUL: return "MUL";break;
+		case DIV: return "DIV";break;
+		case EQL: return "EQL";break;
+		case NEQ: return "NEQ";break;
+		case GTR: return "GTR";break;
+		case LSS: return "LSS";break;
+		case GEQ: return "GEQ";break;
+		case LEQ: return "LEQ";break;
+		case PRN: return "PRN";break;
+		case INN: return "INN";break;
+		case LDI: sprintf(pcode,"LDI   %d",A);
+				  return pcode;break;
+		case LDA: sprintf(pcode,"LDA   %d",A);
+				  return pcode;break;
+		case LDV: return "LDV";break;
+		case STO: return "STO";break;
+		case BRN: sprintf(pcode,"BRN   %d",A);
+				  return pcode;break;
+		case BZE: sprintf(pcode,"BZE   %d",A);
+				  return pcode;break;
+		case HLT: return "HLT";break;
+		default:break;
+	}
+}
+
 
 void generer1(MNEMONIQUES M){
 	if(PC == 1000) erreur(ERR_PLEIN);
 	else{
 		PC++;
 		PCODE[PC].MNE=M;
+		printf("%s\n",testerGenerateur(M,0));
 	}
 }
 
@@ -172,6 +203,7 @@ void generer2(MNEMONIQUES M , int A){
 		PC++;
 		PCODE[PC].MNE = M;
 		PCODE[PC].SUITE = A; 
+		printf("%s\n",testerGenerateur(M,A));
 	}
 }
 
@@ -186,7 +218,7 @@ int  testProg(char *chaine){
 }
 
 
-void testConst(char *chaine){
+ notConst(char *chaine){
 	int i;
 	for(i=0;i<NbrId;i++){
 		if(strcmp(chaine,TAB_IDFS[i].NOM)==0){
@@ -198,7 +230,7 @@ void testConst(char *chaine){
 int chercheTableIdent(char * chaine){
 	int i;
 	for(i=0;i<NbrId;i++){
-		if(strcmp(chaine,TAB_IDFS[i].NOM)==0) return TAB_IDFS[i].ADRESSE;
+		if(strcmp(chaine,TAB_IDFS[i].NOM)==0) return i;
 	}
 	return -1;
 }
@@ -269,19 +301,19 @@ void consts(){
 						  testProg(chaine);
 						  AD=ajouteTabIden(chaine,TCONST);
 						  test_symbole(ID_TOKEN,ERR_ID);
-						  generer2(LDA,AD);
+						  generer2(LDA,TAB_IDFS[AD].ADRESSE);
 						  test_symbole(EG_TOKEN,ERR_EGAL);
 						  test_symbole(NUM_TOKEN,ERR_NUM);
-						  generer2(LDV,atoi(chainePR));
+						  generer2(LDI,atoi(chainePR));
 						  test_symbole(PV_TOKEN,ERR_PV);
 						  generer1(STO);
 						  while(Sym_Cour==ID_TOKEN){
 						    AD=ajouteTabIden(chaine,TCONST);
 						  	sym_suiv();
-						  	generer2(LDA,AD);
+						  	generer2(LDA,TAB_IDFS[AD].ADRESSE);
 							test_symbole(EG_TOKEN,ERR_EGAL);
 						  	test_symbole(NUM_TOKEN,ERR_NUM);
-						  	generer2(LDV,atoi(chainePR));
+						  	generer2(LDI,atoi(chainePR));
 						  	test_symbole(PV_TOKEN,ERR_PV);
 						  	generer1(STO);
 						  }break;
@@ -331,7 +363,13 @@ void inst(){
 	switch(Sym_Cour){
 		
 		case BEGIN_TOKEN: insts();break;
-		case ID_TOKEN: affec();break;
+		case ID_TOKEN:  AD=exist(chaine);
+						if(TAB_IDFS[AD].TIDF==TCONST){
+						sym_suiv();
+						break;}
+						else {
+						affec();break; }
+						
 		case IF_TOKEN: si();break;
 		case WHILE_TOKEN: tantque();break;
 		case WRITE_TOKEN: ecrire();break;
@@ -346,12 +384,11 @@ void inst(){
 }
 
 void affec(){
-	AD=exist(chaine);
 	testProg(chaine);
-	generer2(LDA,AD);
+	generer2(LDA,TAB_IDFS[AD].ADRESSE);
 	sym_suiv();
 	switch(Sym_Cour){
-		case AFF_TOKEN: testConst(chainePR);
+		case AFF_TOKEN: notConst(chainePR);
 						test_symbole(AFF_TOKEN,ERR_AFF);
 						break;
 		default: break;
@@ -398,13 +435,13 @@ void lire(){
 	test_symbole(READ_TOKEN,ERR_READ);
 	test_symbole(PO_TOKEN,ERR_PO);
 	exist(chaine);
-	testConst(chaine);
+	notConst(chaine);
 	testProg(chaine);
 	test_symbole(ID_TOKEN,ERR_ID);
 	while(VIR_TOKEN==Sym_Cour){
 		sym_suiv();
 		exist(chaine);
-		testConst(chaine);
+		notConst(chaine);
 		testProg(chaine);
 		test_symbole(ID_TOKEN,ERR_ID);
 	}
@@ -421,7 +458,7 @@ void repeter(){
 void pour(){
 		test_symbole(FOR_TOKEN,ERR_FOR);
 		exist(chaine);
-		testConst(chaine);
+		notConst(chaine);
 		testProg(chaine);
 		test_symbole(ID_TOKEN,ERR_ID);
 		test_symbole(AFF_TOKEN,ERR_AFF);
@@ -494,7 +531,7 @@ void fact() {
 					  testProg(chaine);
 					  sym_suiv();break;  
 					  
-		case NUM_TOKEN: generer2(LDV,atoi(chaine));
+		case NUM_TOKEN: generer2(LDI,atoi(chaine));
 						sym_suiv(); break;   
 						 
 		case PO_TOKEN: sym_suiv(); 
