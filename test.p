@@ -4,6 +4,6 @@ var a,b,c,f,d;
 BEGIN
 read(a);
 ismail;
-  a := 3*a;
+  a:=3*a;
   write(a,a)
 END.

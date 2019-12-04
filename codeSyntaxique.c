@@ -20,7 +20,7 @@ typedef enum {
   EOF_TOKEN, EG_TOKEN,COM_TOKEN,ELSE_TOKEN,REPEAT_TOKEN,UNTIL_TOKEN,FOR_TOKEN,CASE_TOKEN,INTO_TOKEN,DOWNTO_TOKEN, DP_TOKEN,OF_TOKEN, ACC_TOKEN
   } CODES_TOKENS;
   
-CODES_TOKENS Sym_Cour;
+CODES_TOKENS Sym_Cour, OP; // OP pour memoriser les operations dans la partie semantique
 
 
 
@@ -28,7 +28,7 @@ typedef enum{
 	ERR_CAR_INC, ERR_FIC_VID, ERR_PROGRAM, ERR_ID, ERR_PV, ERR_PT, ERR_EGAL, ERR_NUM, ERR_CONST, ERR_VAR_BEGIN, ERR_CONST_VAR_BEGIN, ERR_BEGIN,
 	ERR_END, ERR_AFF, ERR_IF, ERR_WHILE, ERR_DO, ERR_WRITE,  ERR_READ, ERR_THEN, ERR_PO, ERR_PF,ERR_MOINS, ERR_PLUS, ERR_MULT, ERR_DIV,
 	ERR_COND, ERR_TERM, ERR_FACT, ERR_INF, ERR_SUP, ERR_SUPEG, ERR_INFEG, ERR_DIFF, ERR_ACC, ERR_EXPR,ERR_ELSE,ERR_REPEAT,ERR_UNTIL,ERR_FOR,ERR_CASE,
-	ERR_INTO,ERR_DOWNTO,ERR_DP,ERR_TOKEN,ERR_OF,ERR_INST,ERR_NOTEXISTID,ERR_EXISTID,ERR_CONSTCH,ERR_PROGD, ERR_PLEIN
+	ERR_INTO,ERR_DOWNTO,ERR_DP,ERR_TOKEN,ERR_OF,ERR_INST,ERR_NOTEXISTID,ERR_EXISTID,ERR_CONSTCH,ERR_PROGD, ERR_PLEIN, ERR_AFFECT_ABS
 	}ERREURS;
 
 
@@ -47,6 +47,7 @@ typedef  struct {
  	char NOM[20];     
     TSYM TIDF;
     int ADRESSE;
+    char valeur[30];
     } T_TAB_IDF; 
     
 T_TAB_IDF TAB_IDFS[100]; // tableu des identificateur ( contint le type et son adresse )
@@ -123,8 +124,7 @@ ErreursTab ErrTab[100]={{ERR_CAR_INC ,"caractére inconnu." },
 						{ERR_CONSTCH,"impossible de modifier un CONST type "},
 						{ERR_PROGD,"impossible d'utiliser PROGRAM "},
 						{ERR_PLEIN,"Erreur de PCODE "},
-
-
+						{ERR_AFFECT_ABS,"manque ':='"}
 					};
 
 
@@ -364,9 +364,12 @@ void inst(){
 		
 		case BEGIN_TOKEN: insts();break;
 		case ID_TOKEN:  AD=exist(chaine);
+						generer2(LDA,TAB_IDFS[AD].ADRESSE);
 						if(TAB_IDFS[AD].TIDF==TCONST){
-						sym_suiv();
-						break;}
+							generer1(LDV);
+							sym_suiv();
+							break;
+						}
 						else {
 						affec();break; }
 						
@@ -385,13 +388,11 @@ void inst(){
 
 void affec(){
 	testProg(chaine);
-	generer2(LDA,TAB_IDFS[AD].ADRESSE);
 	sym_suiv();
 	switch(Sym_Cour){
 		case AFF_TOKEN: notConst(chainePR);
-						test_symbole(AFF_TOKEN,ERR_AFF);
-						break;
-		default: break;
+						test_symbole(AFF_TOKEN,ERR_AFF);break;
+		default: erreur(ERR_AFFECT_ABS);break;
 	}
 	expr();
 	generer1(STO);
@@ -498,7 +499,6 @@ void pour(){
 void cond(){
 	expr();
 	switch(Sym_Cour){
-		
 		case EG_TOKEN:     test_symbole(EG_TOKEN,ERR_EGAL);break;
 		case DIFF_TOKEN:   test_symbole(DIFF_TOKEN,ERR_DIFF);break;
 		case INF_TOKEN:    test_symbole(INF_TOKEN,ERR_INF);break;
@@ -511,24 +511,33 @@ void cond(){
 }	
 	void expr() {  
 	  term();   
-	   while(Sym_Cour==PLUS_TOKEN||Sym_Cour==MOINS_TOKEN){       
+	   while(Sym_Cour==PLUS_TOKEN||Sym_Cour==MOINS_TOKEN){   
+	   		OP = Sym_Cour;    
 		    sym_suiv();      
 			term();    
+			if(OP==PLUS_TOKEN)generer1(ADD);
+			else generer1(SUB);
 		}
 }
 
 void term() {
 	fact(); 
 	while(Sym_Cour==MULT_TOKEN||Sym_Cour==DIV_TOKEN) {
-		sym_suiv(); fact();
+		OP = Sym_Cour;
+		sym_suiv();
+		fact();
+		if(op == MULT_TOKEN) generer1(MUL);
+		else generer1(DIV);
 	} 
 }
 
 
 void fact() {   
 	switch(Sym_Cour) {        
-		case ID_TOKEN:exist(chaine);
+		case ID_TOKEN:AD=exist(chaine);
 					  testProg(chaine);
+					  generer2(LDA,TAB_IDFS[AD].ADRESSE);
+					  generer1(LDV);
 					  sym_suiv();break;  
 					  
 		case NUM_TOKEN: generer2(LDI,atoi(chaine));
