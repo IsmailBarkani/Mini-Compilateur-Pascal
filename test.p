@@ -1,7 +1,9 @@
 PROGRAM cercle;
-var kj;
-BEGIN 
-read(diametre);
-  perimetre := 3 * diametre;
-  write(diametre,perimetre);
+const ismail=100;
+var a,b,c,f,d;
+BEGIN
+read(a);
+ismail;
+  a := 3*a;
+  write(a,a)
 END.
