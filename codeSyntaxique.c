@@ -6,8 +6,10 @@
 
 FILE* file;
 char Car_Cour;
-char *pchar,*pchar_temp, chaine[20];
-int  CUR_POS_Y=1, CUR_POS_X=0;
+char *pchar,*pchar_temp, chaine[20],chaineId[20];
+int  CUR_POS_Y=1, CUR_POS_X=0, NbrId=0;
+int TAILLECODE=1024,TAILLEMEM=1024;
+int CHAdresse=0;
 
 
 
@@ -27,7 +29,7 @@ typedef enum{
 	ERR_CAR_INC, ERR_FIC_VID, ERR_PROGRAM, ERR_ID, ERR_PV, ERR_PT, ERR_EGAL, ERR_NUM, ERR_CONST, ERR_VAR_BEGIN, ERR_CONST_VAR_BEGIN, ERR_BEGIN,
 	ERR_END, ERR_AFF, ERR_IF, ERR_WHILE, ERR_DO, ERR_WRITE,  ERR_READ, ERR_THEN, ERR_PO, ERR_PF,ERR_MOINS, ERR_PLUS, ERR_MULT, ERR_DIV,
 	ERR_COND, ERR_TERM, ERR_FACT, ERR_INF, ERR_SUP, ERR_SUPEG, ERR_INFEG, ERR_DIFF, ERR_ACC, ERR_EXPR,ERR_ELSE,ERR_REPEAT,ERR_UNTIL,ERR_FOR,ERR_CASE,
-	ERR_INTO,ERR_DOWNTO,ERR_DP,ERR_TOKEN,ERR_OF,ERR_INST
+	ERR_INTO,ERR_DOWNTO,ERR_DP,ERR_TOKEN,ERR_OF,ERR_INST,ERR_NOTEXISTID,ERR_EXISTID,ERR_CONSTCH,ERR_PROGD, ERR_PLEIN
 	}ERREURS;
 
 
@@ -36,6 +38,36 @@ typedef  struct  {
   ERREURS CODE_ERR;
    char message[40];
     }ErreursTab;
+
+
+
+
+typedef enum{ TPROG, TCONST, TVAR } TSYM;
+typedef  struct {       
+ 	char NOM[20];     
+    TSYM TIDF;
+    int ADRESSE;
+    } T_TAB_IDF; 
+T_TAB_IDF TAB_IDFS[100];
+int OFFSET=-1;
+int MEM[TAILLEMEM];
+int SP;
+typedef enum{ ADD, SUB, MUL, DIV, EQL, NEQ, GTR, LSS, GEQ, LEQ, PRN, INN, INT, LDI, LDA, LDV, STO, BRN, BZE, HLT 
+} MNEMONIQUES ;
+
+typedef struct{
+	MNEMONIQUES MNE;
+	int SUITE;
+} INSTRUCTION;
+
+INSTRUCTION PCODE[TAILLECODE];
+int PC;
+
+
+
+
+
+
 
 ErreursTab ErrTab[100]={{ERR_CAR_INC ,"caractére inconnu." },
 						{ERR_FIC_VID,"fichier est vide"},
@@ -83,7 +115,12 @@ ErreursTab ErrTab[100]={{ERR_CAR_INC ,"caractére inconnu." },
 						{ERR_OF,"Erreur dans la syntaxe OF "},
 						{ERR_AFF,"Erreur dans la syntaxe ':=' "},
 						{ERR_ELSE,"Erreur dans la syntaxe ELSE "},
-						{ERR_INST,"Erreur double ';' "}
+						{ERR_INST,"Erreur double ';' "},
+						{ERR_NOTEXISTID,"Erreur ID inconnu"},
+						{ERR_EXISTID,"Erreur ID Deja declarer "},
+						{ERR_CONSTCH,"impossible de modifier un CONST type "},
+						{ERR_PROGD,"impossible d'utiliser PROGRAM "},
+						{ERR_PLEIN,"Erreur de PCODE "},
 
 
 					};
@@ -119,12 +156,67 @@ void cas();
 
 
 
+void generer1(MNEMONIQUES M){
+	if(PC == TAILLECODE) erreur(ERR_PLEIN);
+	else{
+		PC++;
+		PCODE[PC].MNE=M;
+	}
+}
+
+void generer2(MNEMONIQUES M , int A){
+	if(PC=TAILLECODE) erreur(ERR_PLEIN)
+	else{
+		PC++;
+		PCODE[PC].MNE = M;
+		PCODE[PC].SUITE = A; 
+	}
+}
 
 
+int  testProg(char *chaine){
+	int i;
+	for(i=0;i<NbrId;i++){
+		if(strcmp(chaine,TAB_IDFS[i].NOM)==0){
+         	if (TAB_IDFS[i].TIDF==TPROG)erreur(ERR_PROGD);
+		} 
+	}
+}
 
 
+void testConst(char *chaine){
+	int i;
+	for(i=0;i<NbrId;i++){
+		if(strcmp(chaine,TAB_IDFS[i].NOM)==0){
+         	if(TAB_IDFS[i].TIDF==TCONST) erreur(ERR_CONSTCH);
+			 	} 
+	}
+}
 
+int chercheTableIdent(char * chaine){
+	int i;
+	for(i=0;i<NbrId;i++){
+		if(strcmp(chaine,TAB_IDFS[i].NOM)==0) return 1;
+	}
+	return -1;
+}
 
+  void testExistIdent(chaine){
+  	
+		if(chercheTableIdent(chaine)==-1) erreur(ERR_NOTEXISTID);
+		
+}
+
+int ajouteTabIden(char* chaineId ,TSYM ct){
+	    if(chercheTableIdent(chaineId)==-1){
+			TAB_IDFS[NbrId].TIDF=ct;
+			TAB_IDFS[NbrId].ADRESSE = ++OFFSET;
+			strcpy(TAB_IDFS[NbrId].NOM,chaine);
+			NbrId++;
+	}
+	else erreur(ERR_EXISTID);
+	return OFFSET
+}
 
 void test_symbole(CODES_TOKENS ct, ERREURS code_erreur){
 	
@@ -135,20 +227,16 @@ void test_symbole(CODES_TOKENS ct, ERREURS code_erreur){
 	
 }
 
-
-
 void program(){
 	test_symbole(PROGRAM_TOKEN,ERR_PROGRAM);
+	ajouteTabIden(chaine,TPROG);
 	test_symbole(ID_TOKEN,ERR_ID);
+	generer();
 	test_symbole(PV_TOKEN,ERR_PV);
 	block();
-	
 	test_symbole(END_TOKEN,ERR_END);
 	test_symbole(PT_TOKEN,ERR_PT);
-		
-		
-	
-}
+	}
 
 void block(){
 	consts();
@@ -160,11 +248,14 @@ void consts(){
 	switch(Sym_Cour){
 		
 		case CONST_TOKEN: sym_suiv();
+						  testProg(chaine);
+						  ajouteTabIden(chaine,TCONST);
 						  test_symbole(ID_TOKEN,ERR_ID);
 						  test_symbole(EG_TOKEN,ERR_EGAL);
 						  test_symbole(NUM_TOKEN,ERR_NUM);
 						  test_symbole(PV_TOKEN,ERR_PV);
 						  while(Sym_Cour==ID_TOKEN){
+						   ajouteTabIden(chaine,TCONST);
 						  	sym_suiv();
 							test_symbole(EG_TOKEN,ERR_EGAL);
 						  	test_symbole(NUM_TOKEN,ERR_NUM);
@@ -181,10 +272,16 @@ void vars(){
 	
 	switch(Sym_Cour){
 		
-		case VAR_TOKEN: sym_suiv();
-						  test_symbole(ID_TOKEN,ERR_ID);
-						  while(VIR_TOKEN==Sym_Cour){
+		case VAR_TOKEN:sym_suiv();
+						testProg(chaine);
+						if(chercheTableIdent(chaine)==1) erreur(ERR_EXISTID);
+						ajouteTabIden(chaine,TVAR);
+						test_symbole(ID_TOKEN,ERR_ID);
+						while(VIR_TOKEN==Sym_Cour){
 						  	sym_suiv();
+						  	testProg(chaine);
+							if(chercheTableIdent(chaine)==1) erreur(ERR_EXISTID);
+							ajouteTabIden(chaine,TVAR);
 						  	test_symbole(ID_TOKEN,ERR_ID);
 						  }test_symbole(PV_TOKEN,ERR_PV);break;
 						  
@@ -198,6 +295,7 @@ void vars(){
 void insts(){
 	
 	test_symbole(BEGIN_TOKEN,ERR_BEGIN);
+
 	inst();
 	while(Sym_Cour==PV_TOKEN){
 		sym_suiv();
@@ -226,12 +324,20 @@ void inst(){
 }
 
 void affec(){
-	test_symbole(ID_TOKEN,ERR_ID);
-	test_symbole(AFF_TOKEN,ERR_AFF);
+	testExistIdent(chaine);
+	testProg(chaine);
+	strcpy(chaineId,chaine);
+	sym_suiv();
+	
+	switch(Sym_Cour){
+		case AFF_TOKEN: testConst(chaineId);test_symbole(AFF_TOKEN,ERR_AFF);break;
+		default: break;
+	}
 	expr();
 }
 
 void si(){
+	
 	test_symbole(IF_TOKEN,ERR_IF);
 	cond();
 	test_symbole(THEN_TOKEN,ERR_THEN);
@@ -267,9 +373,15 @@ void ecrire(){
 void lire(){
 	test_symbole(READ_TOKEN,ERR_READ);
 	test_symbole(PO_TOKEN,ERR_PO);
+	testExistIdent(chaine);
+	testConst(chaine);
+	testProg(chaine);
 	test_symbole(ID_TOKEN,ERR_ID);
 	while(VIR_TOKEN==Sym_Cour){
 		sym_suiv();
+		testExistIdent(chaine);
+		testConst(chaine);
+		testProg(chaine);
 		test_symbole(ID_TOKEN,ERR_ID);
 	}
 	test_symbole(PF_TOKEN,ERR_PF);
@@ -284,6 +396,9 @@ void repeter(){
 
 void pour(){
 		test_symbole(FOR_TOKEN,ERR_FOR);
+		testExistIdent(chaine);
+		testConst(chaine);
+		testProg(chaine);
 		test_symbole(ID_TOKEN,ERR_ID);
 		test_symbole(AFF_TOKEN,ERR_AFF);
 		test_symbole(NUM_TOKEN,ERR_NUM);
@@ -297,6 +412,8 @@ void pour(){
 }
  void  cas(){
  	test_symbole(CASE_TOKEN,ERR_CASE);
+ 	testExistIdent(chaine);
+ 	testProg(chaine);
  	test_symbole(ID_TOKEN,ERR_ID);
  	test_symbole(OF_TOKEN,ERR_OF);
  	test_symbole(NUM_TOKEN,ERR_NUM);
@@ -349,7 +466,7 @@ void term() {
 
 void fact() {   
 	switch(Sym_Cour) {        
-		case ID_TOKEN: sym_suiv();break;  
+		case ID_TOKEN:testExistIdent(chaine);testProg(chaine); sym_suiv();break;  
 		case NUM_TOKEN: sym_suiv(); break;   
 		case PO_TOKEN: sym_suiv(); 
 			expr();  
@@ -597,7 +714,7 @@ void sym_suiv(){
   }
 }
 
-int main() {
+int main() {ilyas9668
 	  file = fopen("test.p","r+");
 	  Car_Cour = fgetc(file);
 	  if(Car_Cour=='\n'){
