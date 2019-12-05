@@ -8,7 +8,7 @@ FILE* file;
 char Car_Cour;
 char *pchar,*pchar_temp, chaine[20],chainePR[20];
 int  CUR_POS_Y=1, CUR_POS_X=0, NbrId=0;
-int CHAdresse=0,AD;
+int CMPT=0,AD;
 
 
 
@@ -58,13 +58,15 @@ int SP; //sommet pile
 typedef enum{ ADD, SUB, MUL, DIV, EQL, NEQ, GTR, LSS, GEQ, LEQ, PRN, INN, INT, LDI, LDA, LDV, STO, BRN, BZE, HLT 
 } MNEMONIQUES ;
 
+MNEMONIQUES CND; // cette variable pour memoriser les conditions dans la partie semantique
+
 typedef struct{
 	MNEMONIQUES MNE;
 	int SUITE;
 } INSTRUCTION;
 
 INSTRUCTION PCODE[1000];// table P-CODE 
-int PC;// Compteur d'instruction
+int PC=0,PCT;// PC :Compteur d'instruction
 
 
 
@@ -193,7 +195,7 @@ void generer1(MNEMONIQUES M){
 	else{
 		PC++;
 		PCODE[PC].MNE=M;
-		printf("%s\n",testerGenerateur(M,0));
+	//	printf("%s\n",testerGenerateur(M,0));
 	}
 }
 
@@ -203,7 +205,7 @@ void generer2(MNEMONIQUES M , int A){
 		PC++;
 		PCODE[PC].MNE = M;
 		PCODE[PC].SUITE = A; 
-		printf("%s\n",testerGenerateur(M,A));
+		//printf("%s\n",testerGenerateur(M,A));
 	}
 }
 
@@ -367,6 +369,7 @@ void inst(){
 						generer2(LDA,TAB_IDFS[AD].ADRESSE);
 						if(TAB_IDFS[AD].TIDF==TCONST){
 							generer1(LDV);
+							CMPT++;
 							sym_suiv();
 							break;
 						}
@@ -396,14 +399,20 @@ void affec(){
 	}
 	expr();
 	generer1(STO);
+	CMPT++;
 }
 
 void si(){
 	
 	test_symbole(IF_TOKEN,ERR_IF);
 	cond();
+	generer2(BZE,0);
+	PCT=PC;
+	CMPT=1;
+	sym_suiv();
 	test_symbole(THEN_TOKEN,ERR_THEN);
 	inst();
+	PCODE[PCT].SUITE = PCT + CMPT +1;
 	switch(Sym_Cour){
 			case ELSE_TOKEN : inst(); break;
 			default : break;
@@ -505,15 +514,28 @@ void pour(){
 void cond(){
 	expr();
 	switch(Sym_Cour){
-		case EG_TOKEN:     test_symbole(EG_TOKEN,ERR_EGAL);break;
-		case DIFF_TOKEN:   test_symbole(DIFF_TOKEN,ERR_DIFF);break;
-		case INF_TOKEN:    test_symbole(INF_TOKEN,ERR_INF);break;
-		case SUP_TOKEN:    test_symbole(SUP_TOKEN,ERR_SUP);break;
-		case INFEG_TOKEN : test_symbole(INFEG_TOKEN,ERR_INFEG);break;
-		case SUPEG_TOKEN : test_symbole(SUPEG_TOKEN,ERR_SUPEG);break;
+		case EG_TOKEN:     test_symbole(EG_TOKEN,ERR_EGAL);
+						    CND=EQL;
+							break;
+		case DIFF_TOKEN:   test_symbole(DIFF_TOKEN,ERR_DIFF);
+							CND=NEQ;
+							break;
+		case INF_TOKEN:    test_symbole(INF_TOKEN,ERR_INF);
+							CND=LSS;
+							break;
+		case SUP_TOKEN:    test_symbole(SUP_TOKEN,ERR_SUP);
+							CND=GTR;
+							break;
+		case INFEG_TOKEN : test_symbole(INFEG_TOKEN,ERR_INFEG);
+							CND=LEQ;
+							break;
+		case SUPEG_TOKEN : test_symbole(SUPEG_TOKEN,ERR_SUPEG);
+							CND=GEQ;
+							break;
 		default: erreur(ERR_COND); break;
 	}
 	expr();
+	generer1(CND);
 }	
 	void expr() {  
 	  term();   
@@ -523,6 +545,7 @@ void cond(){
 			term();    
 			if(OP==PLUS_TOKEN)generer1(ADD);
 			else generer1(SUB);
+			CMPT++;
 		}
 }
 
@@ -532,8 +555,10 @@ void term() {
 		OP = Sym_Cour;
 		sym_suiv();
 		fact();
-		if(op == MULT_TOKEN) generer1(MUL);
+		if(OP == MULT_TOKEN) generer1(MUL);
 		else generer1(DIV);
+		
+		CMPT++;
 	} 
 }
 
@@ -543,15 +568,20 @@ void fact() {
 		case ID_TOKEN:AD=exist(chaine);
 					  testProg(chaine);
 					  generer2(LDA,TAB_IDFS[AD].ADRESSE);
+					  CMPT++;
 					  generer1(LDV);
+					  CMPT++;
 					  sym_suiv();break;  
 					  
 		case NUM_TOKEN: generer2(LDI,atoi(chaine));
+						CMPT++;
 						sym_suiv(); break;   
 						 
 		case PO_TOKEN: sym_suiv(); 
 			expr();  
-			test_symbole(PF_TOKEN,ERR_PF);break;
+			//test_symbole(PF_TOKEN,ERR_PF);
+			break;
+		case PF_TOKEN: sym_suiv(); break;
    }
 }
 
@@ -796,6 +826,7 @@ void sym_suiv(){
 }
 
 int main() {
+	int i;
 	  file = fopen("test.p","r+");
 	  Car_Cour = fgetc(file);
 	  if(Car_Cour=='\n'){
@@ -811,5 +842,9 @@ int main() {
 	    sym_suiv();
 	    program();
 	  printf("BRAVO: le programe est correct!! \n"); 
+	  
+	  for(i=1;i<=PC;i++){
+	  	printf("%s\n",testerGenerateur(PCODE[i].MNE,PCODE[i].SUITE));
+	  }
 	  return 0;
 }

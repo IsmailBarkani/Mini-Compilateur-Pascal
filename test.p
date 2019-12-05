@@ -2,8 +2,6 @@ PROGRAM cercle;
 const ismail=100;
 var a,b,c,f,d;
 BEGIN
-read(a);
-ismail;
-  a:=3*a;
-  write(a,a)
+a:=0;
+if(a=0) then b:=a*3+8
 END.
