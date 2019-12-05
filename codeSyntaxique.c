@@ -424,9 +424,11 @@ void ecrire(){
 	test_symbole(WRITE_TOKEN,ERR_WRITE);
 	test_symbole(PO_TOKEN,ERR_PO);
 	expr();
+	generer1(PRN);
 	while(VIR_TOKEN==Sym_Cour){
 		sym_suiv();
 		expr();
+		generer1(PRN);
 	}
 	test_symbole(PF_TOKEN,ERR_PF);
 }
@@ -435,16 +437,20 @@ void ecrire(){
 void lire(){
 	test_symbole(READ_TOKEN,ERR_READ);
 	test_symbole(PO_TOKEN,ERR_PO);
-	exist(chaine);
+	AD=exist(chaine);
 	notConst(chaine);
 	testProg(chaine);
 	test_symbole(ID_TOKEN,ERR_ID);
+	generer2(LDA,TAB_IDFS[AD].ADRESSE);
+	generer1(INN);
 	while(VIR_TOKEN==Sym_Cour){
 		sym_suiv();
-		exist(chaine);
+		AD=exist(chaine);
 		notConst(chaine);
 		testProg(chaine);
 		test_symbole(ID_TOKEN,ERR_ID);
+		generer2(LDA,TAB_IDFS[AD].ADRESSE);
+		generer1(INN);
 	}
 	test_symbole(PF_TOKEN,ERR_PF);
 }
