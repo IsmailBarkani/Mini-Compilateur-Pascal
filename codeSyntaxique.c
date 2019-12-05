@@ -8,7 +8,7 @@ FILE* file;
 char Car_Cour;
 char *pchar,*pchar_temp, chaine[20],chainePR[20];
 int  CUR_POS_Y=1, CUR_POS_X=0, NbrId=0;
-int CMPT=0,AD;
+int CMPT1=0,CMPT2=0,AD;
 
 
 
@@ -66,7 +66,7 @@ typedef struct{
 } INSTRUCTION;
 
 INSTRUCTION PCODE[1000];// table P-CODE 
-int PC=0,PCT;// PC :Compteur d'instruction
+int PC=0,PCT1,PCT2;// PC :Compteur d'instruction
 
 
 
@@ -369,7 +369,8 @@ void inst(){
 						generer2(LDA,TAB_IDFS[AD].ADRESSE);
 						if(TAB_IDFS[AD].TIDF==TCONST){
 							generer1(LDV);
-							CMPT++;
+							CMPT1++;
+							CMPT2++;
 							sym_suiv();
 							break;
 						}
@@ -392,6 +393,7 @@ void inst(){
 void affec(){
 	testProg(chaine);
 	sym_suiv();
+	printf("ff");
 	switch(Sym_Cour){
 		case AFF_TOKEN: notConst(chainePR);
 						test_symbole(AFF_TOKEN,ERR_AFF);break;
@@ -399,7 +401,8 @@ void affec(){
 	}
 	expr();
 	generer1(STO);
-	CMPT++;
+	CMPT1++;
+	CMPT2++;
 }
 
 void si(){
@@ -407,18 +410,24 @@ void si(){
 	test_symbole(IF_TOKEN,ERR_IF);
 	cond();
 	generer2(BZE,0);
-	PCT=PC;
-	CMPT=1;
+	PCT1=PC;
+	CMPT1=1;
 	sym_suiv();
 	test_symbole(THEN_TOKEN,ERR_THEN);
 	inst();
-	PCODE[PCT].SUITE = PCT + CMPT +1;
+	PCODE[PCT1].SUITE = PCT1 + CMPT1 +1;
+	printf("%s",chaine);
 	switch(Sym_Cour){
-			case ELSE_TOKEN : inst(); break;
+			case ELSE_TOKEN : 	generer2(BRN,0);
+								printf("%s",chaine);
+								PCT2=PC;
+								CMPT2=1;
+								sym_suiv();
+								inst(); 
+								PCODE[PCT2].SUITE =PCT2 + CMPT2 +1;
+								break;
 			default : break;
 		}
-		
-	
 }
 
 
@@ -545,7 +554,8 @@ void cond(){
 			term();    
 			if(OP==PLUS_TOKEN)generer1(ADD);
 			else generer1(SUB);
-			CMPT++;
+			CMPT1++;
+			CMPT2++;
 		}
 }
 
@@ -558,7 +568,8 @@ void term() {
 		if(OP == MULT_TOKEN) generer1(MUL);
 		else generer1(DIV);
 		
-		CMPT++;
+		CMPT1++;
+		CMPT2++;
 	} 
 }
 
@@ -568,13 +579,16 @@ void fact() {
 		case ID_TOKEN:AD=exist(chaine);
 					  testProg(chaine);
 					  generer2(LDA,TAB_IDFS[AD].ADRESSE);
-					  CMPT++;
+					  CMPT1++;
+				      CMPT2++;
 					  generer1(LDV);
-					  CMPT++;
+					  CMPT1++;
+				      CMPT2++;
 					  sym_suiv();break;  
 					  
 		case NUM_TOKEN: generer2(LDI,atoi(chaine));
-						CMPT++;
+						CMPT1++;
+					    CMPT2++;
 						sym_suiv(); break;   
 						 
 		case PO_TOKEN: sym_suiv(); 
@@ -612,6 +626,7 @@ const char* deter_Token_code(CODES_TOKENS code) {
       case END_TOKEN : return "END_TOKEN";
       case IF_TOKEN : return "IF_TOKEN";
       case THEN_TOKEN : return "THEN_TOKEN";
+      case ELSE_TOKEN     : return "ELSE_TOKEN";
       case WHILE_TOKEN : return "WHILE_TOKEN";
       case DO_TOKEN : return "DO_TOKEN";
       case READ_TOKEN : return "READ_TOKEN";
@@ -684,6 +699,7 @@ void lire_mot(){
   else if(!strcmp(chaine,"end")||strcmp(chaine,"END")==0) Sym_Cour = END_TOKEN;
   else if(!strcmp(chaine,"if")|| strcmp(chaine,"IF")==0) Sym_Cour = IF_TOKEN;
   else if(!strcmp(chaine,"then")||strcmp(chaine,"THEN")==0) Sym_Cour = THEN_TOKEN;
+  else if(!strcmp(chaine,"else")||strcmp(chaine,"ELSE")==0) Sym_Cour = ELSE_TOKEN;
   else if(!strcmp(chaine,"read")||strcmp(chaine,"READ")==0) Sym_Cour = READ_TOKEN;
   else if(!strcmp(chaine,"write")||strcmp(chaine,"WRITE")==0) Sym_Cour = WRITE_TOKEN;
   else if(!strcmp(chaine,"const")||strcmp(chaine,"CONST")==0) Sym_Cour = CONST_TOKEN;
